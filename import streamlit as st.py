@@ -258,13 +258,14 @@ if brutto_gehalt > 0:
 
 # --- Amazon Affiliate Link Generator ---
 st.header("4. Amazon Affiliate Link erstellen")
-st.write("Geben Sie Ihren Amazon-Partner-Tag und ein Produkt ein, um einen persönlichen Affiliate-Link zu erstellen.")
+st.write("Geben Sie ein Produkt ein, um einen persönlichen Affiliate-Link mit dem Tag 'Shoppingsucht-21' zu erstellen.")
 
-affiliate_tag = st.text_input("Ihr Amazon Partner-Tag (z.B. mein-tag-21)", key="affiliate_tag")
+# Hardcoded affiliate tag
+affiliate_tag = "Shoppingsucht-21"
 search_term = st.text_input("Was möchten Sie kaufen?", placeholder="z.B. Neues Smartphone", key="search_term")
 
 if st.button("Affiliate-Link generieren"):
-    if affiliate_tag and search_term:
+    if search_term:
         # URL-encode the search term to handle spaces and special characters
         encoded_search_term = urllib.parse.quote_plus(search_term)
         
@@ -275,7 +276,7 @@ if st.button("Affiliate-Link generieren"):
         st.code(amazon_link, language="text")
         st.markdown(f"**[Klickbarer Link zum Testen]({amazon_link})**")
     else:
-        st.error("Bitte geben Sie sowohl Ihren Partner-Tag als auch einen Suchbegriff ein.")
+        st.error("Bitte geben Sie einen Suchbegriff ein.")
 
 
 # --- Footer ---
