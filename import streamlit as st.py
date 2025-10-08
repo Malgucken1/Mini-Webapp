@@ -133,8 +133,8 @@ def berechne_netto_gehalt(brutto_monat, steuerklasse, bundesland, hat_kinder, ki
 # --- Streamlit App ---
 st.set_page_config(page_title="Gehaltsrechner DE", page_icon="💰", layout="centered")
 
-st.title("💰 Gehaltsrechner für Deutschland")
-st.write("Berechnen Sie Ihr Nettogehalt und finden Sie heraus, wie lange Sie für eine Anschaffung arbeiten müssen.")
+st.title("💰 Gehalts- & Arbeitszeitrechner")
+st.write("Berechnen Sie Ihr verfügbares Einkommen und wie lange Sie für eine Anschaffung arbeiten müssen.")
 
 # --- Eingabefelder ---
 st.header("1. Ihre Angaben")
@@ -143,6 +143,7 @@ col1, col2 = st.columns(2)
 with col1:
     brutto_gehalt = st.number_input("Monatl. Bruttogehalt (€)", min_value=0.0, value=3500.0, step=100.0)
     stunden_pro_woche = st.number_input("Stunden pro Woche", min_value=1.0, max_value=80.0, value=40.0, step=1.0)
+    fixkosten = st.number_input("Monatliche Fixkosten (€)", help="Miete, Versicherungen, Abos etc.", min_value=0.0, value=1200.0, step=50.0)
     anstellungsart = st.selectbox(
         "Anstellungsverhältnis",
         options=["Angestellte/r", "Auszubildende/r", "Werkstudent/in", "Beamte/Beamtin"],
@@ -166,10 +167,17 @@ if brutto_gehalt > 0:
     st.header("2. Ihre Ergebnisse")
 
     netto_gehalt, abzuege = berechne_netto_gehalt(brutto_gehalt, steuerklasse, bundesland, hat_kinder, kirchensteuerpflichtig, anstellungsart)
+    verfuegbares_einkommen = netto_gehalt - fixkosten
 
-    st.metric(label="Geschätztes monatliches Nettogehalt", value=f"{netto_gehalt:,.2f} €")
+    col_res1, col_res2 = st.columns(2)
+    with col_res1:
+        st.metric(label="Monatl. Nettogehalt (vor Fixkosten)", value=f"{netto_gehalt:,.2f} €")
+    with col_res2:
+        st.metric(label="Verfügbares Einkommen (nach Fixkosten)", value=f"{verfuegbares_einkommen:,.2f} €",
+                  delta=f"{-fixkosten:,.2f} € Fixkosten")
 
-    with st.expander("Details der Abzüge anzeigen"):
+
+    with st.expander("Details der Abzüge vom Bruttogehalt anzeigen"):
         st.write(f"**Gesamtabzüge: {abzuege['Gesamtabzüge']:,.2f} €**")
         st.write("---")
         st.write(f"**Steuern ({abzuege['Steuern Gesamt']:,.2f} €):**")
@@ -187,35 +195,18 @@ if brutto_gehalt > 0:
     WOCHEN_PRO_MONAT = 4.33
     monatliche_arbeitsstunden = stunden_pro_woche * WOCHEN_PRO_MONAT
     
-    if monatliche_arbeitsstunden > 0:
-        stundenlohn_netto = netto_gehalt / monatliche_arbeitsstunden
-        st.metric(label="Ihr Netto-Stundenlohn", value=f"{stundenlohn_netto:,.2f} €")
+    if monatliche_arbeitsstunden > 0 and preis_artikel > 0:
+        st.subheader(f"Benötigte Arbeitszeit für den Artikel ({preis_artikel:,.2f} €)")
 
-        if preis_artikel > 0 and stundenlohn_netto > 0:
-            st.subheader("Benötigte Arbeitszeit für den Artikel")
-
-            stunden_pro_tag = stunden_pro_woche / 5
-            benoetigte_stunden_total = preis_artikel / stundenlohn_netto
+        if verfuegbares_einkommen > 0:
+            stundenlohn_verfuegbar = verfuegbares_einkommen / monatliche_arbeitsstunden
+            benoetigte_stunden_total = preis_artikel / stundenlohn_verfuegbar
             
-            arbeitstage = 0
-            if stunden_pro_tag > 0:
-                arbeitstage = math.floor(benoetigte_stunden_total / stunden_pro_tag)
-                rest_stunden_nach_tagen = benoetigte_stunden_total % stunden_pro_tag
-            else:
-                rest_stunden_nach_tagen = benoetigte_stunden_total
+            st.metric(label="Um den Betrag aus Ihrem verfügbaren Einkommen zu sparen, müssen Sie arbeiten:",
+                      value=f"{benoetigte_stunden_total:,.2f} Stunden")
+        else:
+            st.warning("Ihre Fixkosten sind gleich hoch oder höher als Ihr Nettogehalt. Sie können den Artikel nicht aus dem laufenden Einkommen ansparen.")
 
-            stunden = math.floor(rest_stunden_nach_tagen)
-            minuten = math.floor((rest_stunden_nach_tagen - stunden) * 60)
-
-            ergebnis_text = ""
-            if arbeitstage > 0:
-                ergebnis_text += f"{arbeitstage} Tag(e), "
-            if stunden > 0:
-                ergebnis_text += f"{stunden} Stunde(n) und "
-            ergebnis_text += f"{minuten} Minute(n)"
-
-            st.metric(label=f"Um {preis_artikel:,.2f} € zu verdienen, müssen Sie arbeiten:",
-                      value=ergebnis_text.strip().strip(","))
 
 # --- Footer ---
 st.markdown("---")
