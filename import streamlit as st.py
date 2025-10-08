@@ -1,5 +1,6 @@
 import streamlit as st
 import math
+import urllib.parse
 
 # --- KONSTANTEN FÜR DEUTSCHLAND (Stand 2024/2025, West) ---
 # Diese Werte können für zukünftige Jahre angepasst werden.
@@ -254,6 +255,27 @@ if brutto_gehalt > 0:
                       value=ergebnis_text)
         else:
             st.warning("Ihre Fixkosten sind gleich hoch oder höher als Ihr Nettogehalt. Sie können den Artikel nicht aus dem laufenden Einkommen ansparen.")
+
+# --- Amazon Affiliate Link Generator ---
+st.header("4. Amazon Affiliate Link erstellen")
+st.write("Geben Sie Ihren Amazon-Partner-Tag und ein Produkt ein, um einen persönlichen Affiliate-Link zu erstellen.")
+
+affiliate_tag = st.text_input("Ihr Amazon Partner-Tag (z.B. mein-tag-21)", key="affiliate_tag")
+search_term = st.text_input("Was möchten Sie kaufen?", placeholder="z.B. Neues Smartphone", key="search_term")
+
+if st.button("Affiliate-Link generieren"):
+    if affiliate_tag and search_term:
+        # URL-encode the search term to handle spaces and special characters
+        encoded_search_term = urllib.parse.quote_plus(search_term)
+        
+        # Construct the affiliate link for amazon.de
+        amazon_link = f"https://www.amazon.de/s?k={encoded_search_term}&tag={affiliate_tag}"
+        
+        st.success("Ihr Affiliate-Link wurde erstellt!")
+        st.code(amazon_link, language="text")
+        st.markdown(f"**[Klickbarer Link zum Testen]({amazon_link})**")
+    else:
+        st.error("Bitte geben Sie sowohl Ihren Partner-Tag als auch einen Suchbegriff ein.")
 
 
 # --- Footer ---
