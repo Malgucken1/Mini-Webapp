@@ -257,14 +257,14 @@ if brutto_gehalt > 0:
             st.warning("Ihre Fixkosten sind gleich hoch oder höher als Ihr Nettogehalt. Sie können den Artikel nicht aus dem laufenden Einkommen ansparen.")
 
 # --- Amazon Affiliate Link Generator ---
-st.header("4. Amazon Affiliate Link erstellen")
+st.header("4. Amazon Link zum Produkt")
 st.write("Geben Sie ein Produkt ein, um einen persönlichen Affiliate-Link mit dem Tag 'Shoppingsucht-21' zu erstellen.")
 
 # Hardcoded affiliate tag
 affiliate_tag = "Shoppingsucht-21"
 search_term = st.text_input("Was möchten Sie kaufen?", placeholder="z.B. Neues Smartphone", key="search_term")
 
-if st.button("Affiliate-Link generieren"):
+if st.button("Link zum Produkt generieren"):
     if search_term:
         # URL-encode the search term to handle spaces and special characters
         encoded_search_term = urllib.parse.quote_plus(search_term)
@@ -289,3 +289,4 @@ st.info(
     - **Für Auszubildende:** Bei einem Gehalt unter 325 €/Monat (Geringverdienergrenze) zahlt der Arbeitgeber die Sozialabgaben allein. Dies wird hier nicht abgebildet.
     """
 )
+
