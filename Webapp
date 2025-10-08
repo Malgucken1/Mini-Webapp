@@ -1,0 +1,64 @@
+import streamlit as st
+import math
+
+# --- Konfiguration ---
+# Annahmen für die Berechnung. Diese können angepasst werden.
+STEUER_UND_SOZIAL_SATZ = 0.40  # Vereinfachte Annahme von 40% für Steuern und Sozialabgaben
+STUNDEN_PRO_WOCHE = 40
+WOCHEN_PRO_MONAT = 4.33  # Durchschnittliche Anzahl der Wochen in einem Monat
+MONATLICHE_ARBEITSSTUNDEN = STUNDEN_PRO_WOCHE * WOCHEN_PRO_MONAT
+
+# --- Hauptanwendung ---
+st.set_page_config(page_title="Gehaltsrechner", page_icon="💰", layout="centered")
+
+st.title("💰 Gehalts- und Arbeitszeit-Rechner")
+st.write("Geben Sie Ihr Bruttogehalt und den Preis eines Artikels ein, um herauszufinden, wie lange Sie dafür arbeiten müssen.")
+
+# --- Eingabefelder ---
+st.header("1. Ihre Angaben")
+brutto_gehalt = st.number_input("Ihr monatliches Bruttogehalt (€)", min_value=0.0, step=100.0)
+preis_artikel = st.number_input("Preis des Artikels (€)", min_value=0.0, step=10.0)
+
+
+# --- Berechnung und Ausgabe ---
+if brutto_gehalt > 0:
+    st.header("2. Ihre Ergebnisse")
+
+    # Nettogehalt berechnen
+    netto_gehalt = brutto_gehalt * (1 - STEUER_UND_SOZIAL_SATZ)
+    st.metric(label="Geschätztes monatliches Nettogehalt", value=f"{netto_gehalt:,.2f} €")
+    st.info(f"Dies ist eine Schätzung. Wir haben eine pauschale Abgabenlast von {STEUER_UND_SOZIAL_SATZ:.0%} angenommen.")
+
+    # Stundenlohn berechnen
+    stundenlohn_netto = netto_gehalt / MONATLICHE_ARBEITSSTUNDEN
+    st.metric(label="Ihr Netto-Stundenlohn", value=f"{stundenlohn_netto:,.2f} €")
+    st.info(f"Berechnet auf Basis von {MONATLICHE_ARBEITSSTUNDEN:.0f} Stunden pro Monat ({STUNDEN_PRO_WOCHE} Stunden/Woche).")
+
+
+    if preis_artikel > 0:
+        st.subheader("Benötigte Arbeitszeit für den Artikel")
+
+        # Benötigte Arbeitszeit berechnen
+        benoetigte_stunden_total = preis_artikel / stundenlohn_netto
+
+        # Umrechnung in Tage, Stunden und Minuten
+        arbeitstage = math.floor(benoetigte_stunden_total / 8)
+        rest_stunden = benoetigte_stunden_total % 8
+        stunden = math.floor(rest_stunden)
+        minuten = math.floor((rest_stunden - stunden) * 60)
+
+        # Ergebnis formatiert ausgeben
+        ergebnis_text = ""
+        if arbeitstage > 0:
+            ergebnis_text += f"{arbeitstage} Tag(e), "
+        if stunden > 0:
+            ergebnis_text += f"{stunden} Stunde(n) und "
+        ergebnis_text += f"{minuten} Minute(n)"
+
+        st.metric(label=f"Um {preis_artikel:,.2f} € zu verdienen, müssen Sie arbeiten:",
+                  value=ergebnis_text.strip(", "))
+        st.success("Sie wissen jetzt, wie viel Ihrer Zeit der Artikel wirklich wert ist!")
+
+# --- Footer ---
+st.markdown("---")
+st.write("Haftungsausschluss: Alle Berechnungen sind vereinfachte Schätzungen und dienen nur zur Veranschaulichung.")
