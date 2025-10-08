@@ -241,8 +241,17 @@ if brutto_gehalt > 0:
             stundenlohn_verfuegbar = verfuegbares_einkommen / monatliche_arbeitsstunden
             benoetigte_stunden_total = preis_artikel / stundenlohn_verfuegbar
             
+            # Umrechnung in Stunden, Minuten und Sekunden
+            stunden_ganz = int(benoetigte_stunden_total)
+            minuten_decimal = (benoetigte_stunden_total - stunden_ganz) * 60
+            minuten_ganz = int(minuten_decimal)
+            sekunden_decimal = (minuten_decimal - minuten_ganz) * 60
+            sekunden_ganz = int(sekunden_decimal)
+
+            ergebnis_text = f"{stunden_ganz} Stunde(n), {minuten_ganz} Minute(n) und {sekunden_ganz} Sekunde(n)"
+            
             st.metric(label="Um den Betrag aus Ihrem verfügbaren Einkommen zu sparen, müssen Sie arbeiten:",
-                      value=f"{benoetigte_stunden_total:,.2f} Stunden")
+                      value=ergebnis_text)
         else:
             st.warning("Ihre Fixkosten sind gleich hoch oder höher als Ihr Nettogehalt. Sie können den Artikel nicht aus dem laufenden Einkommen ansparen.")
 
