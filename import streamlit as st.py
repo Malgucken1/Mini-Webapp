@@ -135,6 +135,7 @@ st.header("1. Ihre Angaben")
 col1, col2 = st.columns(2)
 with col1:
     brutto_gehalt = st.number_input("Monatl. Bruttogehalt (€)", min_value=0.0, value=3500.0, step=100.0)
+    stunden_pro_woche = st.number_input("Stunden pro Woche", min_value=1.0, max_value=80.0, value=40.0, step=1.0)
     steuerklasse = st.selectbox("Steuerklasse", options=[1, 2, 3, 4, 5, 6], index=0)
     hat_kinder = st.radio("Haben Sie Kinder?", options=["Ja", "Nein"], index=0) == "Ja"
 
@@ -171,10 +172,9 @@ if brutto_gehalt > 0:
         st.write(f"- Pflegeversicherung: {abzuege['Pflegeversicherung']:,.2f} €")
 
     # Stundenlohn und Arbeitszeit
-    STUNDEN_PRO_WOCHE = 40
     WOCHEN_PRO_MONAT = 4.33
-    MONATLICHE_ARBEITSSTUNDEN = STUNDEN_PRO_WOCHE * WOCHEN_PRO_MONAT
-    stundenlohn_netto = netto_gehalt / MONATLICHE_ARBEITSSTUNDEN
+    monatliche_arbeitsstunden = stunden_pro_woche * WOCHEN_PRO_MONAT
+    stundenlohn_netto = netto_gehalt / monatliche_arbeitsstunden
 
     st.metric(label="Ihr Netto-Stundenlohn", value=f"{stundenlohn_netto:,.2f} €")
 
@@ -182,10 +182,10 @@ if brutto_gehalt > 0:
         st.subheader("Benötigte Arbeitszeit für den Artikel")
 
         benoetigte_stunden_total = preis_artikel / stundenlohn_netto
-        arbeitstage = math.floor(benoetigte_stunden_total / 8)
-        rest_stunden = benoetigte_stunden_total % 8
-        stunden = math.floor(rest_stunden)
-        minuten = math.floor((rest_stunden - stunden) * 60)
+        arbeitstage = math.floor(benoetigte_stunden_total / (stunden_pro_woche / 5)) # Arbeitstage basierend auf Wochenstunden
+        rest_stunden_nach_tagen = benoetigte_stunden_total % (stunden_pro_woche / 5)
+        stunden = math.floor(rest_stunden_nach_tagen)
+        minuten = math.floor((rest_stunden_nach_tagen - stunden) * 60)
 
         ergebnis_text = ""
         if arbeitstage > 0:
