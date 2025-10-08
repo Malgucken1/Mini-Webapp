@@ -258,7 +258,6 @@ if brutto_gehalt > 0:
 
 # --- Amazon Affiliate Link Generator ---
 st.header("4. Amazon Link zum Produkt")
-st.write("Geben Sie ein Produkt ein")
 
 # Hardcoded affiliate tag
 affiliate_tag = "Shoppingsucht-21"
@@ -289,5 +288,6 @@ st.info(
     - **Für Auszubildende:** Bei einem Gehalt unter 325 €/Monat (Geringverdienergrenze) zahlt der Arbeitgeber die Sozialabgaben allein. Dies wird hier nicht abgebildet.
     """
 )
+
 
 
