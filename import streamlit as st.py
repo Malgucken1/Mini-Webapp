@@ -136,6 +136,11 @@ st.set_page_config(page_title="Gehaltsrechner DE", page_icon="💰", layout="cen
 st.title("💰 Gehalts- & Arbeitszeitrechner")
 st.write("Berechnen Sie Ihr verfügbares Einkommen und wie lange Sie für eine Anschaffung arbeiten müssen.")
 
+# Initialize session state for fixed costs list
+if 'fixkosten_liste' not in st.session_state:
+    st.session_state.fixkosten_liste = []
+
+
 # --- Eingabefelder ---
 st.header("1. Ihre Angaben")
 
@@ -143,7 +148,6 @@ col1, col2 = st.columns(2)
 with col1:
     brutto_gehalt = st.number_input("Monatl. Bruttogehalt (€)", min_value=0.0, value=3500.0, step=100.0)
     stunden_pro_woche = st.number_input("Stunden pro Woche", min_value=1.0, max_value=80.0, value=40.0, step=1.0)
-    fixkosten = st.number_input("Monatliche Fixkosten (€)", help="Miete, Versicherungen, Abos etc.", min_value=0.0, value=1200.0, step=50.0)
     anstellungsart = st.selectbox(
         "Anstellungsverhältnis",
         options=["Angestellte/r", "Auszubildende/r", "Werkstudent/in", "Beamte/Beamtin"],
@@ -161,20 +165,55 @@ with col2:
     hat_kinder = st.radio("Haben Sie Kinder?", options=["Ja", "Nein"], index=0) == "Ja"
     kirchensteuerpflichtig = st.radio("Kirchensteuerpflichtig?", options=["Ja", "Nein"], index=1) == "Ja"
 
+# --- Bereich für individuelle Fixkosten ---
+st.header("2. Ihre monatlichen Fixkosten")
+
+# Function to remove an item
+def remove_fixkosten(index_to_remove):
+    if 0 <= index_to_remove < len(st.session_state.fixkosten_liste):
+        st.session_state.fixkosten_liste.pop(index_to_remove)
+
+# Input form for new items
+with st.form(key="fixkosten_form", clear_on_submit=True):
+    col_form1, col_form2 = st.columns(2)
+    with col_form1:
+        neuer_posten_name = st.text_input("Beschreibung", placeholder="z.B. Miete, Handyvertrag...")
+    with col_form2:
+        neuer_posten_wert = st.number_input("Betrag (€)", min_value=0.01, step=0.01, format="%.2f")
+    
+    submitted = st.form_submit_button("Hinzufügen")
+    if submitted and neuer_posten_name and neuer_posten_wert:
+        st.session_state.fixkosten_liste.append({"name": neuer_posten_name, "wert": neuer_posten_wert})
+
+# Display existing items
+if st.session_state.fixkosten_liste:
+    st.write("---")
+    for i, posten in enumerate(st.session_state.fixkosten_liste):
+        col_disp1, col_disp2, col_disp3 = st.columns([3, 2, 1])
+        with col_disp1:
+            st.write(posten["name"])
+        with col_disp2:
+            st.write(f"{posten['wert']:,.2f} €")
+        with col_disp3:
+            st.button("🗑️", key=f"delete_{i}", on_click=remove_fixkosten, args=(i,))
+    st.write("---")
+
+fixkosten_total = sum(posten['wert'] for posten in st.session_state.fixkosten_liste)
+
 
 # --- Berechnung und Ausgabe ---
 if brutto_gehalt > 0:
-    st.header("2. Ihre Ergebnisse")
+    st.header("3. Ihre Ergebnisse")
 
     netto_gehalt, abzuege = berechne_netto_gehalt(brutto_gehalt, steuerklasse, bundesland, hat_kinder, kirchensteuerpflichtig, anstellungsart)
-    verfuegbares_einkommen = netto_gehalt - fixkosten
+    verfuegbares_einkommen = netto_gehalt - fixkosten_total
 
     col_res1, col_res2 = st.columns(2)
     with col_res1:
         st.metric(label="Monatl. Nettogehalt (vor Fixkosten)", value=f"{netto_gehalt:,.2f} €")
     with col_res2:
         st.metric(label="Verfügbares Einkommen (nach Fixkosten)", value=f"{verfuegbares_einkommen:,.2f} €",
-                  delta=f"{-fixkosten:,.2f} € Fixkosten")
+                  delta=f"{-fixkosten_total:,.2f} € Fixkosten")
 
 
     with st.expander("Details der Abzüge vom Bruttogehalt anzeigen"):
