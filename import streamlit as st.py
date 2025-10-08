@@ -65,36 +65,43 @@ def berechne_lohnsteuer(brutto_monat, steuerklasse):
 
     return steuer_jahr / 12
 
-def berechne_netto_gehalt(brutto_monat, steuerklasse, bundesland, hat_kinder, kirchensteuerpflichtig):
+def berechne_netto_gehalt(brutto_monat, steuerklasse, bundesland, hat_kinder, kirchensteuerpflichtig, anstellungsart):
     """Berechnet das Nettogehalt basierend auf detaillierten deutschen Abzügen."""
 
-    # 1. Sozialversicherungsbeiträge berechnen
-    # Brutto bis zur jeweiligen Beitragsbemessungsgrenze
+    # Initialisiere alle Beiträge
+    kv_beitrag, pv_beitrag, rv_beitrag, av_beitrag = 0.0, 0.0, 0.0, 0.0
+
+    # 1. Sozialversicherungsbeiträge je nach Anstellungsart berechnen
     brutto_kv_pv = min(brutto_monat, BBG_KV_PV)
     brutto_rv_av = min(brutto_monat, BBG_RV_AV)
 
-    kv_beitrag = brutto_kv_pv * SATZ_KV_GESAMT
-    rv_beitrag = brutto_rv_av * SATZ_RV
-    av_beitrag = brutto_rv_av * SATZ_AV
-
-    if hat_kinder:
-        pv_beitrag = brutto_kv_pv * SATZ_PV_MIT_KIND
-    else:
-        pv_beitrag = brutto_kv_pv * SATZ_PV_OHNE_KIND
+    if anstellungsart in ["Angestellte/r", "Auszubildende/r"]:
+        # Standard-Sozialversicherungspflicht (Azubis über 325€/Monat)
+        kv_beitrag = brutto_kv_pv * SATZ_KV_GESAMT
+        rv_beitrag = brutto_rv_av * SATZ_RV
+        av_beitrag = brutto_rv_av * SATZ_AV
+        if hat_kinder:
+            pv_beitrag = brutto_kv_pv * SATZ_PV_MIT_KIND
+        else:
+            pv_beitrag = brutto_kv_pv * SATZ_PV_OHNE_KIND
+    elif anstellungsart == "Werkstudent/in":
+        # Werkstudenten zahlen nur in die Rentenversicherung
+        rv_beitrag = brutto_rv_av * SATZ_RV
+    elif anstellungsart == "Beamte/Beamtin":
+        # Beamte zahlen keine Sozialversicherungsbeiträge, da sie anders abgesichert sind
+        pass # Alle Beiträge bleiben 0
 
     sozialabgaben_total = kv_beitrag + rv_beitrag + av_beitrag + pv_beitrag
 
-    # 2. Steuern berechnen
+    # 2. Steuern berechnen (gilt für alle Anstellungsarten)
     lohnsteuer = berechne_lohnsteuer(brutto_monat, steuerklasse)
 
-    # Solidaritätszuschlag (oft 0, da Freigrenze hoch ist)
-    soli_freigrenze_jahr = 18130 # Single, 2024
+    soli_freigrenze_jahr = 18130
     if lohnsteuer * 12 > soli_freigrenze_jahr:
         soli = lohnsteuer * 0.055
     else:
         soli = 0.0
 
-    # Kirchensteuer
     kirchensteuer = 0.0
     if kirchensteuerpflichtig:
         if bundesland in ["Bayern", "Baden-Württemberg"]:
@@ -136,8 +143,12 @@ col1, col2 = st.columns(2)
 with col1:
     brutto_gehalt = st.number_input("Monatl. Bruttogehalt (€)", min_value=0.0, value=3500.0, step=100.0)
     stunden_pro_woche = st.number_input("Stunden pro Woche", min_value=1.0, max_value=80.0, value=40.0, step=1.0)
+    anstellungsart = st.selectbox(
+        "Anstellungsverhältnis",
+        options=["Angestellte/r", "Auszubildende/r", "Werkstudent/in", "Beamte/Beamtin"],
+        index=0
+    )
     steuerklasse = st.selectbox("Steuerklasse", options=[1, 2, 3, 4, 5, 6], index=0)
-    hat_kinder = st.radio("Haben Sie Kinder?", options=["Ja", "Nein"], index=0) == "Ja"
 
 with col2:
     preis_artikel = st.number_input("Preis des Artikels (€)", min_value=0.0, value=1000.0, step=10.0)
@@ -146,6 +157,7 @@ with col2:
         "Mecklenburg-Vorpommern", "Niedersachsen", "Nordrhein-Westfalen", "Rheinland-Pfalz",
         "Saarland", "Sachsen", "Sachsen-Anhalt", "Schleswig-Holstein", "Thüringen"
     ])
+    hat_kinder = st.radio("Haben Sie Kinder?", options=["Ja", "Nein"], index=0) == "Ja"
     kirchensteuerpflichtig = st.radio("Kirchensteuerpflichtig?", options=["Ja", "Nein"], index=1) == "Ja"
 
 
@@ -153,7 +165,7 @@ with col2:
 if brutto_gehalt > 0:
     st.header("2. Ihre Ergebnisse")
 
-    netto_gehalt, abzuege = berechne_netto_gehalt(brutto_gehalt, steuerklasse, bundesland, hat_kinder, kirchensteuerpflichtig)
+    netto_gehalt, abzuege = berechne_netto_gehalt(brutto_gehalt, steuerklasse, bundesland, hat_kinder, kirchensteuerpflichtig, anstellungsart)
 
     st.metric(label="Geschätztes monatliches Nettogehalt", value=f"{netto_gehalt:,.2f} €")
 
@@ -174,33 +186,44 @@ if brutto_gehalt > 0:
     # Stundenlohn und Arbeitszeit
     WOCHEN_PRO_MONAT = 4.33
     monatliche_arbeitsstunden = stunden_pro_woche * WOCHEN_PRO_MONAT
-    stundenlohn_netto = netto_gehalt / monatliche_arbeitsstunden
+    
+    if monatliche_arbeitsstunden > 0:
+        stundenlohn_netto = netto_gehalt / monatliche_arbeitsstunden
+        st.metric(label="Ihr Netto-Stundenlohn", value=f"{stundenlohn_netto:,.2f} €")
 
-    st.metric(label="Ihr Netto-Stundenlohn", value=f"{stundenlohn_netto:,.2f} €")
+        if preis_artikel > 0 and stundenlohn_netto > 0:
+            st.subheader("Benötigte Arbeitszeit für den Artikel")
 
-    if preis_artikel > 0:
-        st.subheader("Benötigte Arbeitszeit für den Artikel")
+            stunden_pro_tag = stunden_pro_woche / 5
+            benoetigte_stunden_total = preis_artikel / stundenlohn_netto
+            
+            arbeitstage = 0
+            if stunden_pro_tag > 0:
+                arbeitstage = math.floor(benoetigte_stunden_total / stunden_pro_tag)
+                rest_stunden_nach_tagen = benoetigte_stunden_total % stunden_pro_tag
+            else:
+                rest_stunden_nach_tagen = benoetigte_stunden_total
 
-        benoetigte_stunden_total = preis_artikel / stundenlohn_netto
-        arbeitstage = math.floor(benoetigte_stunden_total / (stunden_pro_woche / 5)) # Arbeitstage basierend auf Wochenstunden
-        rest_stunden_nach_tagen = benoetigte_stunden_total % (stunden_pro_woche / 5)
-        stunden = math.floor(rest_stunden_nach_tagen)
-        minuten = math.floor((rest_stunden_nach_tagen - stunden) * 60)
+            stunden = math.floor(rest_stunden_nach_tagen)
+            minuten = math.floor((rest_stunden_nach_tagen - stunden) * 60)
 
-        ergebnis_text = ""
-        if arbeitstage > 0:
-            ergebnis_text += f"{arbeitstage} Tag(e), "
-        if stunden > 0:
-            ergebnis_text += f"{stunden} Stunde(n) und "
-        ergebnis_text += f"{minuten} Minute(n)"
+            ergebnis_text = ""
+            if arbeitstage > 0:
+                ergebnis_text += f"{arbeitstage} Tag(e), "
+            if stunden > 0:
+                ergebnis_text += f"{stunden} Stunde(n) und "
+            ergebnis_text += f"{minuten} Minute(n)"
 
-        st.metric(label=f"Um {preis_artikel:,.2f} € zu verdienen, müssen Sie arbeiten:",
-                  value=ergebnis_text.strip().strip(","))
+            st.metric(label=f"Um {preis_artikel:,.2f} € zu verdienen, müssen Sie arbeiten:",
+                      value=ergebnis_text.strip().strip(","))
 
 # --- Footer ---
 st.markdown("---")
 st.info(
-    "**Haftungsausschluss:** Dies ist eine vereinfachte Berechnung und dient nur zur Orientierung. "
-    "Die tatsächliche Lohnabrechnung kann aufgrund von individuellen Faktoren (z.B. genauer Krankenkassenzusatzbeitrag, "
-    "private Krankenversicherung, geldwerte Vorteile) abweichen. Die Lohnsteuerberechnung ist eine Annäherung."
+    """
+    **Haftungsausschluss:** Dies ist eine vereinfachte Berechnung und dient nur zur Orientierung. Die tatsächliche Lohnabrechnung kann aufgrund von individuellen Faktoren abweichen.
+    - **Für Werkstudenten:** Die Beiträge zur studentischen Kranken- und Pflegeversicherung sind hier nicht berücksichtigt und müssen separat entrichtet werden.
+    - **Für Beamte:** Die Beiträge zur privaten Kranken- und Pflegeversicherung (Restkostenabsicherung zur Beihilfe) sind hier nicht berücksichtigt und müssen separat entrichtet werden.
+    - **Für Auszubildende:** Bei einem Gehalt unter 325 €/Monat (Geringverdienergrenze) zahlt der Arbeitgeber die Sozialabgaben allein. Dies wird hier nicht abgebildet.
+    """
 )
