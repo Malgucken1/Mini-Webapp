@@ -208,6 +208,10 @@ if brutto_gehalt > 0:
 
     netto_gehalt, abzuege = berechne_netto_gehalt(brutto_gehalt, steuerklasse, bundesland, hat_kinder, kirchensteuerpflichtig, anstellungsart)
     verfuegbares_einkommen = netto_gehalt - fixkosten_total
+    
+    # Konstante für Wochen pro Monat
+    WOCHEN_PRO_MONAT = 4.33
+    monatliche_arbeitsstunden = stunden_pro_woche * WOCHEN_PRO_MONAT
 
     col_res1, col_res2 = st.columns(2)
     with col_res1:
@@ -216,6 +220,17 @@ if brutto_gehalt > 0:
         st.metric(label="Verfügbares Einkommen (nach Fixkosten)", value=f"{verfuegbares_einkommen:,.2f} €",
                   delta=f"{-fixkosten_total:,.2f} € Fixkosten")
 
+    # --- NEU: Berechnung und Anzeige des Stundenlohns ---
+    if monatliche_arbeitsstunden > 0:
+        stundenlohn_brutto = brutto_gehalt / monatliche_arbeitsstunden
+        stundenlohn_netto = netto_gehalt / monatliche_arbeitsstunden
+        
+        col_res3, col_res4 = st.columns(2)
+        with col_res3:
+            st.metric(label="Stundenlohn (Brutto)", value=f"{stundenlohn_brutto:,.2f} €")
+        with col_res4:
+            st.metric(label="Stundenlohn (Netto)", value=f"{stundenlohn_netto:,.2f} €")
+    # --- ENDE NEU ---
 
     with st.expander("Details der Abzüge vom Bruttogehalt anzeigen"):
         st.write(f"**Gesamtabzüge: {abzuege['Gesamtabzüge']:,.2f} €**")
@@ -231,10 +246,7 @@ if brutto_gehalt > 0:
         st.write(f"- Arbeitslosenversicherung: {abzuege['Arbeitslosenversicherung']:,.2f} €")
         st.write(f"- Pflegeversicherung: {abzuege['Pflegeversicherung']:,.2f} €")
 
-    # Stundenlohn und Arbeitszeit
-    WOCHEN_PRO_MONAT = 4.33
-    monatliche_arbeitsstunden = stunden_pro_woche * WOCHEN_PRO_MONAT
-    
+    # Arbeitszeit für Artikel
     if monatliche_arbeitsstunden > 0 and preis_artikel > 0:
         st.subheader(f"Benötigte Arbeitszeit für den Artikel ({preis_artikel:,.2f} €)")
 
@@ -260,7 +272,7 @@ if brutto_gehalt > 0:
 st.header("4. Amazon Link zum Produkt")
 
 # Hardcoded affiliate tag
-affiliate_tag = "affiliatesche-21"
+affiliate_tag = "Shoppingsucht-21"
 search_term = st.text_input("Was möchten Sie kaufen?", placeholder="z.B. Neues Smartphone", key="search_term")
 
 if st.button("Link zum Produkt generieren"):
@@ -288,7 +300,3 @@ st.info(
     - **Für Auszubildende:** Bei einem Gehalt unter 325 €/Monat (Geringverdienergrenze) zahlt der Arbeitgeber die Sozialabgaben allein. Dies wird hier nicht abgebildet.
     """
 )
-
-
-
-
